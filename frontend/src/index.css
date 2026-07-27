@@ -1,0 +1,164 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.1 80.7% 10%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 142.1 70.6% 45.3%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.1 70.6% 45.3%;
+
+    /* Tema Oscuro por Defecto (Slate Original) */
+    --color-slate-50: #f8fafc;
+    --color-slate-100: #f1f5f9;
+    --color-slate-200: #e2e8f0;
+    --color-slate-300: #cbd5e1;
+    --color-slate-400: #94a3b8;
+    --color-slate-450: #889bb0;
+    --color-slate-500: #64748b;
+    --color-slate-600: #475569;
+    --color-slate-650: #3b4b5e;
+    --color-slate-700: #334155;
+    --color-slate-750: #242f41;
+    --color-slate-800: #1e293b;
+    --color-slate-850: #131d31;
+    --color-slate-900: #0f172a;
+    --color-slate-950: #020617;
+  }
+
+  /* Tema Claro Alternativo */
+  body.light {
+    --color-slate-950: #f1f5f9; /* fondo principal */
+    --color-slate-900: #ffffff; /* tarjetas y sidebar */
+    --color-slate-850: #e2e8f0; /* inputs, tablas secundarias */
+    --color-slate-800: #cbd5e1; /* bordes principales */
+    --color-slate-750: #b4c6ef; /* bordes interactivos */
+    --color-slate-700: #94a3b8; /* bordes secundarios */
+    --color-slate-650: #64748b;
+    --color-slate-600: #475569;
+    --color-slate-500: #334155;
+    --color-slate-450: #1e293b;
+    --color-slate-400: #1e293b; /* texto descriptivo oscuro */
+    --color-slate-300: #0f172a; /* texto primario oscuro */
+    --color-slate-200: #0f172a; /* texto principal oscuro */
+    --color-slate-100: #020617; /* texto destacado oscuro */
+    --color-slate-50: #020617;
+    
+    background-color: #f1f5f9 !important;
+    color: #020617 !important;
+  }
+}
+
+body {
+  background-color: var(--color-slate-950);
+  color: var(--color-slate-200);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Transiciones suaves */
+* {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Ocultar barra de scroll manteniendo el desplazamiento */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE y Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Excel preview custom styling */
+.excel-preview-container table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+  background-color: rgba(15, 23, 42, 0.4);
+}
+.excel-preview-container th, .excel-preview-container td {
+  border: 1px solid #334155;
+  padding: 0.5rem;
+  text-align: left;
+  min-width: 100px;
+}
+.excel-preview-container th {
+  background-color: #1e293b;
+  color: #f8fafc;
+  font-weight: bold;
+  position: sticky;
+  top: 0;
+}
+.excel-preview-container tr:hover td {
+  background-color: rgba(30, 41, 59, 0.6);
+}
+
+/* Word (docx-preview) custom container */
+.docx-viewer-wrapper {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+  padding: 2.5rem !important;
+  border-radius: 0.75rem !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+  max-width: 850px !important;
+  margin: 0 auto !important;
+  font-family: 'Calibri', 'Arial', sans-serif !important;
+  overflow-x: auto !important;
+}
+.docx-viewer-wrapper * {
+  color: #000000 !important;
+  border-color: #cbd5e1 !important;
+}
+.docx-viewer-wrapper p {
+  margin-bottom: 0.75rem !important;
+  line-height: 1.5 !important;
+}
+.docx-viewer-wrapper table {
+  border-collapse: collapse !important;
+  margin: 1rem 0 !important;
+  width: 100% !important;
+}
+.docx-viewer-wrapper table, .docx-viewer-wrapper th, .docx-viewer-wrapper td {
+  border: 1px solid #cbd5e1 !important;
+  padding: 0.4rem 0.6rem !important;
+}

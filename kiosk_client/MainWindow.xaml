@@ -1,0 +1,80 @@
+<Window x:Class="KioskClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2000/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2005/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wpf="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:local="clr-namespace:KioskClient"
+        mc:Ignorable="d"
+        Title="Estación de Escaneo JEC - Kiosco" 
+        Height="1080" Width="1920"
+        WindowStyle="None"
+        WindowState="Maximized"
+        Topmost="True"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
+        Background="#020617"
+        KeyDown="Window_KeyDown">
+    
+    <Grid>
+        <!-- Control WebView2 para cargar la web de la estación -->
+        <wpf:WebView2 Name="MyWebView" 
+                      HorizontalAlignment="Stretch" 
+                      VerticalAlignment="Stretch"
+                      Visibility="Collapsed" />
+
+        <!-- Pantalla de carga y estado de conexión Premium -->
+        <Grid Name="LoadingOverlay" Background="#020617" Visibility="Visible">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" TextBlock.Foreground="#F1F5F9" MaxWidth="500">
+                <!-- Icono de Cargando JEC -->
+                <Border Width="64" Height="64" CornerRadius="16" Background="#064E3B" Padding="12" Margin="0,0,0,24" HorizontalAlignment="Center">
+                    <TextBlock Text="📷" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- Título -->
+                <TextBlock Text="INTRANET JEC" 
+                           FontSize="24" 
+                           FontWeight="Black" 
+                           HorizontalAlignment="Center" 
+                           TextAlignment="Center" 
+                           Foreground="#10B981" 
+                           Margin="0,0,0,8"/>
+
+                <TextBlock Text="Estación Kiosco de Puerta" 
+                           FontSize="14" 
+                           FontWeight="SemiBold" 
+                           HorizontalAlignment="Center" 
+                           TextAlignment="Center" 
+                           Foreground="#94A3B8" 
+                           Margin="0,0,0,24"/>
+
+                <!-- Mensaje de Estado -->
+                <TextBlock Name="StatusText" 
+                           Text="Estableciendo comunicación con el servidor local..." 
+                           FontSize="12" 
+                           HorizontalAlignment="Center" 
+                           TextAlignment="Center" 
+                           Foreground="#64748B" 
+                           TextWrapping="Wrap" 
+                           Margin="0,0,0,32"/>
+
+                <!-- Indicador de Carga Animado -->
+                <ProgressBar Name="LoadingProgressBar" 
+                             Height="4" 
+                             Width="200" 
+                             IsIndeterminate="True" 
+                             Background="#1E293B" 
+                             Foreground="#10B981" 
+                             BorderThickness="0" 
+                             HorizontalAlignment="Center"/>
+                
+                <!-- Pie de página con atajo de salida -->
+                <TextBlock Text="Para cerrar el quiosco, presione Ctrl + Shift + Q" 
+                           FontSize="10" 
+                           Foreground="#334155" 
+                           HorizontalAlignment="Center" 
+                           Margin="0,48,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

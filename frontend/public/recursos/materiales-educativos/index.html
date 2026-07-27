@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materiales Educativos - Dotación Secundaria</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: transparent;
+            color: #e2e8f0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-8 border-b border-slate-700 pb-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-slate-100">Dotación Secundaria</h1>
+            <p class="text-slate-400 mt-2">Explora y lee los recursos digitales disponibles para educación secundaria.</p>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6" id="gallery">
+            <!-- Los items se generarán dinámicamente aquí -->
+        </div>
+    </div>
+
+    <script>
+        // Lista de archivos basada en tu estructura
+        const items = [
+            'DES-13', 'DES-14', 'DES-15', 'DES-16', 'DES-17', 
+            'DES-18', 'DES-19', 'DES-20', 'DES-21', 'DES-22'
+        ];
+
+        const basePath = 'dotacion_secundaria/dotacion/secundaria';
+        const gallery = document.getElementById('gallery');
+
+        items.forEach(item => {
+            const card = document.createElement('a');
+            card.href = `${basePath}/recursos/${item}.pdf`;
+            card.target = '_blank';
+            card.className = "group block bg-slate-800/50 hover:bg-slate-800 border border-slate-700 rounded-xl overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1";
+            
+            card.innerHTML = `
+                <div class="aspect-[3/4] overflow-hidden bg-slate-900 relative">
+                    <img src="${basePath}/imagenes/${item}.jpg" 
+                         alt="Portada de ${item}" 
+                         class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMWUyOTNiIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIiBmb250LXNpemU9IjEwIiBmaWxsPSIjOTRjM2Y4IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+UG9ydGFkYSBObwpEaXNwb25pYmxlPC90ZXh0Pjwvc3ZnPg=='"
+                    >
+                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span class="bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium text-sm shadow-lg flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            Abrir PDF
+                        </span>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-slate-700">
+                    <h3 class="font-bold text-slate-200 group-hover:text-indigo-400 transition-colors">Recurso ${item}</h3>
+                    <p class="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Secundaria</p>
+                </div>
+            `;
+            
+            gallery.appendChild(card);
+        });
+    </script>
+</body>
+</html>

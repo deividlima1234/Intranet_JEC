@@ -1,0 +1,66 @@
+---
+
+# EXPEDIENTE TÉCNICO DE SOFTWARE - ARQUITECTURA FRONTEND
+
+**PROYECTO:** SISTEMA INTEGRADO INTRANET JEC - I.E. HUANOQUITE
+**MÓDULO:** FASE 01 - INFRAESTRUCTURA, IDENTIDAD Y CONTROL PATRIMONIAL
+**TECNOLOGÍA BASE:** React.js + Tailwind CSS
+**AUTOR:** Coordinación de Innovación y Soporte Tecnológico (CIST) Eddam Eloy
+
+## 1. OBJETIVO DE LA ARQUITECTURA VISUAL (UI/UX)
+
+Diseñar e implementar una Interfaz de Usuario (UI) de alto rendimiento, accesible y responsiva (Single Page Application - SPA) que permita la operación fluida del sistema de control patrimonial. El diseño priorizará la velocidad en el Aula de Innovación Pedagógica (AIP), permitiendo al personal registrar el emparejamiento de equipos en milisegundos para evitar demoras en el desarrollo de la sesión de aprendizaje JEC.
+
+## 2. STACK TECNOLÓGICO Y DEPENDENCIAS
+
+Se utilizará un ecosistema moderno basado en JavaScript/TypeScript, garantizando la compatibilidad con navegadores actualizados sin requerir instalación de software adicional en las máquinas cliente:
+
+* **Librería Core:** **React.js** (Empaquetado con Vite para máxima velocidad de carga en la red local).
+* **Estilos y Maquetación:** **Tailwind CSS** (Framework de utilidades para un diseño rápido, coherente y adaptativo).
+* **Gestor de Estado:** **Zustand** o **Context API** (Para manejar la sesión del CIST y el estado de la red).
+* **Integración de Hardware:** `html5-qrcode` (Librería open-source para acceder a la cámara web o del celular y decodificar los JWT).
+* **Generación de Documentos:** `jspdf` y `react-qr-code` (Para compilar y exportar los fotochecks en PDF listos para impresión).
+
+## 3. IDENTIDAD INSTITUCIONAL Y ACCESIBILIDAD
+
+El sistema se alineará con la identidad de la I.E. Huanoquite y los estándares de accesibilidad visual:
+
+* **Paleta Principal (Modo Claro):** Basada en el **Verde Institucional** para la barra de navegación y botones de acción principal, fondos blancos/gris claro (`#F9FAFB`) para reducir la fatiga visual de los docentes, y textos en gris pizarra.
+* **Modo Oscuro (Dark Mode CIST):** Integrado nativamente. Permite alternar a una interfaz con fondos oscuros (`#111827`) y acentos verdes, optimizada para la administración prolongada por parte del CIST en entornos de baja iluminación.
+* **Feedback Visual:** Alertas por colores estándar (Verde = Escaneo Exitoso, Ámbar = Equipo en Préstamo, Rojo = Error/Equipo Dado de Baja).
+
+## 4. ESTRUCTURA DE VISTAS Y COMPONENTES (Fase 01)
+
+### 4.1. Módulo Administrativo: Panel de Control (Dashboard)
+
+Pantalla principal de monitoreo para el CIST.
+
+* **Tarjetas de Estado (Widgets):** Muestran en tiempo real el porcentaje de equipos operativos vs. prestados en las Aulas AIP 1, 2 y 3.
+* **Monitor de Red:** Indicador visual de la conexión con el servidor interno (Ping).
+
+### 4.2. Módulo de Identidad: Generador de Credenciales
+
+Interfaz para la gestión de usuarios y activos físicos.
+
+* **Directorio:** Tabla interactiva para dar de alta a estudiantes y docentes.
+* **Exportador PDF:** Un botón de "Imprimir Lote" que compila los QR generados por el Backend (Spring Boot) y los acomoda en formato A4 (Stickers para laptops o fotochecks para alumnos/docentes).
+
+### 4.3. Módulo Operativo: Estación de Escaneo (El Núcleo)
+
+Esta es la pantalla que estará abierta permanentemente en el celular o tablet del CIST durante los cambios de hora. Diseñada con botones grandes y áreas de escaneo claras.
+
+| Componente | Función y Flujo de Interacción |
+| --- | --- |
+| **Selector de AIP** | Menú desplegable inicial para definir en qué aula se está operando (AIP 1, 2 o 3). |
+| **Botón: "MODO CLASE AIP"** | Activa la cámara. Escanea el QR del Docente. Muestra una lista de la sección (ej. 3ro A) con "checkboxes". Al darle "Confirmar", envía la petición masiva al Backend para emparejar a los alumnos con sus laptops según su número de orden. |
+| **Botón: "PRÉSTAMO EXTERNO"** | Activa la cámara. Escanea el QR del Docente. La interfaz cambia a un "Carrito de Préstamo". Cada vez que se escanea una tableta, se añade a la lista visual. Un botón de "Finalizar Préstamo" consolida la salida. |
+| **Botón: "RETORNO / CIERRE"** | Para liberar los equipos escaneando nuevamente al docente responsable o el equipo individual. |
+
+## 5. INTEGRACIÓN DE HARDWARE (Cámara y Red Local)
+
+El Frontend será servido por el servidor inactivo (reactivado) en la red LAN del colegio.
+
+* **Cero Dependencia de Internet:** La aplicación web React se descargará instantáneamente al navegador del dispositivo cliente al ingresar la IP del servidor (ej. `192.168.1.100`).
+* **Acceso a Periféricos:** Para que la API de HTML5 permita el acceso a la cámara web/celular en una red local sin HTTPS, el servidor DNS interno configurará un entorno seguro o se habilitará el *port-forwarding* específico, permitiendo lecturas de QR a alta velocidad (menos de 0.5 segundos por escaneo).
+
+---

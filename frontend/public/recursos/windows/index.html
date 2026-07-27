@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programas offline Windows</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: transparent;
+            color: #e2e8f0;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569; 
+        }
+        
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;  
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- HEADER / NAVIGATION -->
+        <div class="mb-8 border-b border-slate-700 pb-4">
+            
+            <!-- Breadcrumbs / Back button -->
+            <div id="nav-header" class="mb-4">
+                <!-- Se inyecta por JS -->
+            </div>
+
+            <h1 id="page-title" class="text-2xl md:text-3xl font-bold text-slate-100">Categorías de Programas Windows</h1>
+            <p id="page-subtitle" class="text-slate-400 mt-2">Selecciona un área para explorar los instaladores disponibles.</p>
+        </div>
+
+        <!-- SECTIONS -->
+        <div id="categories-section" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-[fadeIn_0.3s_ease-out]"></div>
+        
+        <div id="apps-section" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-[fadeIn_0.3s_ease-out]"></div>
+        
+        <div id="details-section" class="hidden animate-[fadeIn_0.3s_ease-out]">
+            <div class="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-3xl p-6 md:p-10 shadow-2xl">
+                <div class="flex flex-col md:flex-row gap-8 items-start">
+                    
+                    <div class="w-full md:w-1/4 flex justify-center">
+                        <div class="w-40 h-40 bg-slate-800 rounded-3xl p-4 shadow-inner flex items-center justify-center border border-slate-700">
+                            <img id="detail-image" src="" class="w-full h-full object-contain drop-shadow-xl" alt="Icono de App">
+                        </div>
+                    </div>
+                    
+                    <div class="w-full md:w-3/4">
+                        <h2 id="detail-title" class="text-3xl font-bold text-emerald-400 mb-2">Nombre del Programa</h2>
+                        <span id="detail-category" class="inline-block bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-widest border border-emerald-500/20 mb-6">Categoría</span>
+                        
+                        <h3 class="text-lg font-bold text-slate-200 mb-2">Descripción breve</h3>
+                        <p id="detail-desc" class="text-slate-400 mb-6"></p>
+                        
+                        <h3 class="text-lg font-bold text-slate-200 mb-2">Información completa</h3>
+                        <p id="detail-full" class="text-slate-400 mb-8 whitespace-pre-wrap"></p>
+                        
+                        <div class="border-t border-slate-700 pt-6">
+                            <h3 class="text-sm font-bold text-slate-300 uppercase tracking-widest mb-4">Descargar en:</h3>
+                            <div class="flex flex-wrap gap-4" id="download-links">
+                                <!-- Enlaces generados por JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Cargar base de datos -->
+    <script src="assets/js/data.js"></script>
+
+    <!-- Lógica de navegación -->
+    <script>
+        const categoriesSection = document.getElementById('categories-section');
+        const appsSection = document.getElementById('apps-section');
+        const detailsSection = document.getElementById('details-section');
+        const navHeader = document.getElementById('nav-header');
+        
+        const pageTitle = document.getElementById('page-title');
+        const pageSubtitle = document.getElementById('page-subtitle');
+
+        let currentCategory = null;
+
+        function renderCategories() {
+            categoriesSection.innerHTML = '';
+            
+            // Obtener categorías únicas
+            const categories = [...new Set(apps.map(app => app.category))];
+
+            categories.forEach(cat => {
+                const firstApp = apps.find(a => a.category === cat);
+                // Si la categoría tiene imagen (imagecategory en data.js), usarla, si no un placeholder
+                let imgUrl = firstApp.imagecategory || firstApp.image;
+                
+                // Ajuste de ruta si data.js trae 'images/...' en lugar de 'assets/images/...'
+                if (imgUrl.startsWith('images/')) {
+                    imgUrl = 'assets/' + imgUrl;
+                }
+
+                const card = document.createElement('div');
+                card.className = "group cursor-pointer bg-slate-800/40 hover:bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden transition-all hover:shadow-lg hover:border-emerald-500/50 flex flex-col h-full";
+                card.onclick = () => showApps(cat);
+                
+                card.innerHTML = `
+                    <div class="p-8 flex-1 flex flex-col items-center justify-center text-center">
+                        <div class="w-24 h-24 mb-6 rounded-2xl overflow-hidden flex items-center justify-center p-2">
+                            <img src="${imgUrl}" alt="${cat}" class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110 drop-shadow-lg">
+                        </div>
+                        <h3 class="font-bold text-xl text-slate-200 group-hover:text-emerald-400 transition-colors">${cat}</h3>
+                    </div>
+                    <div class="bg-slate-900/50 border-t border-slate-700 p-4 text-center">
+                        <span class="text-sm font-medium text-emerald-500 flex items-center justify-center gap-2">
+                            Ver programas
+                            <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </span>
+                    </div>
+                `;
+                categoriesSection.appendChild(card);
+            });
+
+            // Actualizar vista
+            categoriesSection.classList.remove('hidden');
+            appsSection.classList.add('hidden');
+            detailsSection.classList.add('hidden');
+            
+            pageTitle.innerText = "Categorías de Programas Windows";
+            pageSubtitle.innerText = "Selecciona un área para explorar los instaladores disponibles.";
+            navHeader.innerHTML = "";
+        }
+
+        function showApps(categoryName) {
+            currentCategory = categoryName;
+            appsSection.innerHTML = '';
+            
+            const categoryApps = apps.filter(app => app.category === categoryName);
+            
+            categoryApps.forEach(app => {
+                const card = document.createElement('div');
+                card.className = "group cursor-pointer bg-slate-800/40 hover:bg-slate-800 border border-slate-700 rounded-2xl p-6 transition-all hover:shadow-lg hover:border-emerald-500/50 flex flex-col h-full";
+                card.onclick = () => showDetails(app);
+                
+                card.innerHTML = `
+                    <div class="flex items-start gap-4 mb-4">
+                        <div class="w-16 h-16 bg-slate-900 rounded-xl p-2 shrink-0 border border-slate-700 shadow-inner flex items-center justify-center">
+                            <img src="${app.image}" alt="${app.name}" class="w-full h-full object-contain drop-shadow-md">
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-slate-100 group-hover:text-emerald-400 transition-colors leading-tight mb-1">${app.name}</h3>
+                        </div>
+                    </div>
+                    <p class="text-sm text-slate-400 line-clamp-3 mb-6 flex-1">${app.description}</p>
+                    <div class="mt-auto border-t border-slate-700/60 pt-4 flex justify-between items-center">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 group-hover:text-emerald-500 transition-colors">Más detalles</span>
+                        <div class="w-8 h-8 rounded-full bg-slate-700 group-hover:bg-emerald-500 flex items-center justify-center transition-colors">
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </div>
+                `;
+                appsSection.appendChild(card);
+            });
+
+            // Actualizar vista
+            categoriesSection.classList.add('hidden');
+            appsSection.classList.remove('hidden');
+            detailsSection.classList.add('hidden');
+            
+            pageTitle.innerText = categoryName;
+            pageSubtitle.innerText = `Mostrando ${categoryApps.length} programas en esta categoría.`;
+            
+            // Botón atrás
+            navHeader.innerHTML = `
+                <button onclick="renderCategories()" class="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    Volver a Categorías
+                </button>
+            `;
+        }
+
+        function showDetails(app) {
+            document.getElementById('detail-image').src = app.image;
+            document.getElementById('detail-title').innerText = app.name;
+            document.getElementById('detail-category').innerText = app.category;
+            document.getElementById('detail-desc').innerText = app.description;
+            document.getElementById('detail-full').innerText = app.details;
+
+            const linksContainer = document.getElementById('download-links');
+            linksContainer.innerHTML = '';
+
+            const createLink = (url, label, iconSvg) => {
+                if (url && url !== "No disponible" && url !== "#") {
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.target = "_blank";
+                    a.className = "flex items-center gap-3 bg-slate-800 hover:bg-emerald-600 border border-slate-700 hover:border-emerald-500 text-slate-200 hover:text-white px-5 py-3 rounded-xl font-medium transition-all group";
+                    a.innerHTML = `
+                        <div class="text-emerald-400 group-hover:text-white transition-colors">${iconSvg}</div>
+                        ${label}
+                    `;
+                    linksContainer.appendChild(a);
+                }
+            };
+
+            // Icono Windows / Descarga
+            const downloadIcon = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>';
+
+            createLink(app.instalador, "Descargar Instalador (.exe)", downloadIcon);
+            
+            // Si no hay links, mostrar mensaje
+            if (linksContainer.innerHTML === '') {
+                linksContainer.innerHTML = '<span class="text-slate-500 italic">El archivo de instalación no está disponible actualmente.</span>';
+            }
+
+            // Actualizar vista
+            categoriesSection.classList.add('hidden');
+            appsSection.classList.add('hidden');
+            detailsSection.classList.remove('hidden');
+            
+            pageTitle.innerText = "Detalles del Programa";
+            pageSubtitle.innerText = "Información y enlace de descarga para Windows.";
+            
+            // Botón atrás a las apps
+            navHeader.innerHTML = `
+                <button onclick="showApps('${app.category}')" class="flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    Volver a ${app.category}
+                </button>
+            `;
+        }
+
+        // Inicializar
+        renderCategories();
+    </script>
+</body>
+</html>

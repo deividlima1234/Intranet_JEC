@@ -1,0 +1,84 @@
+---
+
+# EXPEDIENTE TÉCNICO DE SOFTWARE - ARQUITECTURA BACKEND
+
+**PROYECTO:** SISTEMA INTEGRADO INTRANET JEC - I.E. HUANOQUITE
+
+
+**MÓDULO:** FASE 01 - INFRAESTRUCTURA, IDENTIDAD Y CONTROL PATRIMONIAL 
+**TECNOLOGÍA BASE:** Java Spring Boot (Framework Open Source)
+**AUTOR:** Coordinación de Innovación y Soporte Tecnológico (CIST) Eddam Eloy
+
+## 1. OBJETIVO DE LA ARQUITECTURA
+
+Desarrollar una API RESTful robusta, segura y de alto rendimiento que centralice la lógica de negocio del Aula de Innovación Pedagógica (AIP). El sistema gestionará la emisión de credenciales QR, el control de acceso y el emparejamiento automatizado con el inventario de equipos, garantizando tiempos de respuesta mínimos durante el ingreso masivo de estudiantes a las tres (03) aulas AIP habilitadas.
+
+## 2. STACK TECNOLÓGICO Y LIBRERÍAS
+
+Para garantizar la sostenibilidad técnica sin incurrir en gastos de licenciamiento, se empleará el siguiente ecosistema Java:
+
+* **Core:** Java 17 (LTS) + Spring Boot 3.x.
+* **Persistencia de Datos:** Spring Data JPA / Hibernate (ORM para el mapeo relacional con PostgreSQL).
+* **Seguridad:** Spring Security + JSON Web Tokens (JWT) para la encriptación de los códigos QR.
+* **Validación:** Hibernate Validator (Validación de datos de entrada para evitar errores humanos).
+
+## 3. ARQUITECTURA DE CAPAS (N-Tier)
+
+El código fuente se estructurará bajo el patrón de diseño MVC (Modelo-Vista-Controlador) orientado a microservicios monolíticos, dividiendo las responsabilidades para facilitar el mantenimiento futuro:
+
+| Capa (Package) | Responsabilidad Técnica |
+| --- | --- |
+| `com.jec.cist.controllers` | Recibe las peticiones HTTP (GET, POST) desde el lector QR del Frontend y retorna respuestas en formato JSON. |
+| `com.jec.cist.services` | Contiene el "Cerebro" del sistema. Aquí se programa la lógica de asignación automática de laptops y el control de estados del inventario. |
+| `com.jec.cist.repositories` | Interfaces de Spring Data JPA que ejecutan las consultas SQL directas contra la base de datos PostgreSQL. |
+| `com.jec.cist.models` | Las Entidades (Clases Java) que reflejan fielmente las tablas de la base de datos diseñadas en el expediente anterior. |
+| `com.jec.cist.security` | Filtros de intercepción para validar que los códigos QR escaneados sean auténticos, no estén alterados ni caducados. |
+
+## 4. DISEÑO DE LA API REST (Endpoints Core - Fase 01)
+
+A continuación, se detallan las rutas principales de comunicación que el sistema consumirá para ejecutar los flujos operativos diarios.
+
+### 4.1. Módulo de Identidad y QR
+
+Gestión de usuarios y generación de credenciales criptográficas.
+
+| Método HTTP | Endpoint (Ruta URI) | Descripción y Lógica |
+| --- | --- | --- |
+| **POST** | `/api/v1/usuarios/registro` | Registra un nuevo estudiante/docente y genera automáticamente su `qr_token` encriptado. |
+| **GET** | `/api/v1/usuarios/{id}/credencial` | Devuelve los datos del usuario y la representación en Base64 de su código QR para ser impreso en fotocheck. |
+
+### 4.2. Módulo de Inventario y Aulas
+
+Control del hardware inactivo reactivado  y distribución en las 3 aulas.
+
+| Método HTTP | Endpoint (Ruta URI) | Descripción y Lógica |
+| --- | --- | --- |
+| **POST** | `/api/v1/equipos/alta` | Registra una nueva PC/Tablet y genera el código QR estático para pegar en el chasis. |
+| **GET** | `/api/v1/aulas/{id_aula}/inventario` | Retorna el estado en tiempo real de todos los equipos de un AIP específico (Disponibles vs Prestados). |
+
+### 4.3. Módulo Transaccional (El Motor de Emparejamiento)
+
+El núcleo de la automatización para evitar cuellos de botella en la puerta del AIP.
+
+| Método HTTP | Endpoint (Ruta URI) | Descripción y Lógica |
+| --- | --- | --- |
+| **POST** | `/api/v1/sesiones/iniciar-clase` | **(Modo Clase):** Recibe el QR del Docente, ID del Aula (1,2,3) y la Sección (Ej: "3A"). El servicio busca a los alumnos, ubica las laptops por número de orden, registra la `sesiones_detalle` en bloque y bloquea los equipos en la DB. |
+| **POST** | `/api/v1/sesiones/registrar-prestamo` | **(Modo Préstamo):** Recibe el QR del Docente y un Array `[]` con los QR escaneados de las tabletas. Cambia el estado de los equipos a `PRESTADO_AULA` y crea la sesión bajo la responsabilidad exclusiva del profesor. |
+| **PUT** | `/api/v1/sesiones/{id_sesion}/finalizar` | Libera todos los equipos asociados a esa sesión, devolviendo su estado a `EN_AIP` y marcando la `hora_fin`. |
+
+## 5. LÓGICA DE SEGURIDAD JWT (Implementación QR)
+
+El sistema no guardará simples números correlativos en los códigos QR. Para evitar falsificaciones por parte de los estudiantes, el código QR contendrá un Token JWT firmado digitalmente por el servidor inactivo (Linux OS).
+
+* **Payload del Token:** Contendrá el `id_usuario` (UUID) y su `rol` (ESTUDIANTE, DOCENTE).
+* **Firma:** Utilizará el algoritmo HMAC SHA-256 con una llave secreta (`SECRET_KEY`) alojada únicamente en las variables de entorno del servidor del CIST. Si un QR es fotocopiado y modificado, la firma será inválida y el sistema lo rechazará instantáneamente mostrando una alerta roja en pantalla.
+
+## 6. DESPLIEGUE EN SERVIDOR LOCAL
+
+Para ejecutar esta API dentro de la institución sin dependencia de Internet:
+
+1. El código fuente será compilado en un archivo ejecutable `.jar`.
+2. Se desplegará como un servicio en segundo plano (Systemd) dentro del servidor Linux reactivado en la Fase 1.
+
+
+3. Estará escuchando internamente en el puerto `8080`, protegido por el firewall (UFW) de la red local institucional.

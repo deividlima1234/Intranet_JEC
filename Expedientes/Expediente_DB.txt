@@ -1,0 +1,112 @@
+---
+
+# EXPEDIENTE TÉCNICO DE ARQUITECTURA DE DATOS (V2.0)
+
+**PROYECTO:** SISTEMA INTEGRADO INTRANET JEC - I.E. HUANOQUITE **MÓDULO:** FASE 01 - INFRAESTRUCTURA, IDENTIDAD Y CONTROL PATRIMONIAL **MOTOR DE BASE DE DATOS:** PostgreSQL (Software Libre) **AUTOR:** Coordinación de Innovación y Soporte Tecnológico (CIST) Eddam Eloy
+
+## 1. OBJETIVO DEL DISEÑO DE DATOS
+
+Establecer un modelo relacional robusto y normalizado que soporte la operatividad simultánea de tres (03) Aulas de Innovación Pedagógica (AIP). El diseño garantiza la integridad del control patrimonial al gestionar asignaciones estáticas (Modo Clase) y dinámicas (Modo Préstamo Externo), centralizando la identidad de los usuarios mediante tecnología QR.
+
+## 2. TOPOLOGÍA Y ESCALABILIDAD
+
+El diseño transaccional abandona el registro plano a favor de un patrón **Maestro-Detalle (`sesiones_grupales` -> `sesiones_detalle`)**. Esto delega la responsabilidad legal del uso de los equipos al docente a cargo, automatizando la asignación de dispositivos (laptops/tabletas) a los estudiantes según su número de orden en lista, mitigando cuellos de botella al ingreso de las 3 aulas.
+
+---
+
+## 3. DICCIONARIO DE DATOS (DDL TÉCNICO)
+
+### 3.1. Módulo de Identidad Central (Herencia de Perfiles)
+
+**Tabla Maestra: `usuarios**`
+*Autenticación unificada y generación de credenciales QR.*
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_usuario` | UUID | PRIMARY KEY | ID universal. Prevención de inyección SQL. |
+| `dni` | VARCHAR(8) | UNIQUE, NOT NULL | Documento de Identidad. |
+| `nombres` | VARCHAR(100) | NOT NULL | Nombres completos. |
+| `apellidos` | VARCHAR(100) | NOT NULL | Apellidos completos. |
+| `rol` | ENUM | NOT NULL | `ESTUDIANTE`, `DOCENTE`, `ADMINISTRATIVO`, `CIST`. |
+| `qr_token` | VARCHAR(255) | UNIQUE, NOT NULL | Hash único que se compila como Código QR impreso. |
+| `estado` | ENUM | DEFAULT 'ACTIVO' | `ACTIVO`, `INACTIVO`. |
+
+**Tabla Perfil: `estudiantes**`
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_usuario` | UUID | PK, FOREIGN KEY | Enlace a `usuarios`. |
+| `grado` | SMALLINT | CHECK (1-5) | Grado académico (1ro a 5to de secundaria). |
+| `seccion` | CHAR(1) | NOT NULL | Sección (A, B, C...). |
+| `numero_orden` | SMALLINT | NOT NULL | **Clave operativa:** Número de lista, usado para auto-asignar la laptop correspondiente. |
+
+**Tabla Perfil: `personal_institucional**`
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_usuario` | UUID | PK, FOREIGN KEY | Enlace a `usuarios`. |
+| `cargo` | VARCHAR(50) | NOT NULL | Ej: Docente, Director.
+
+ |
+| `area_curricular` | VARCHAR(100) | NULLABLE | Ej: Matemática, Comunicación. |
+
+---
+
+### 3.2. Módulo de Infraestructura y Patrimonio
+
+**Tabla Catálogo: `aulas_aip` (NUEVA)**
+*Control espacial de la infraestructura tecnológica.*
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_aula` | SERIAL | PRIMARY KEY | Identificador (1, 2, 3). |
+| `nombre_aula` | VARCHAR(50) | UNIQUE, NOT NULL | Ej: "AIP 01 - Principal", "AIP 02", "AIP 03". |
+| `estado_red` | ENUM | DEFAULT 'ONLINE' | `ONLINE`, `OFFLINE`, `MANTENIMIENTO`. |
+
+**Tabla Patrimonial: `equipos_aip` (ACTUALIZADA)**
+*Inventario físico y control de ubicación en tiempo real.*
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_equipo` | UUID | PRIMARY KEY | Identificador de hardware. |
+| `id_aula_base` | INTEGER | FOREIGN KEY | Enlace a `aulas_aip`. Define a qué aula pertenece el equipo (1, 2 o 3). |
+| `cod_patrimonial` | VARCHAR(50) | UNIQUE, NOT NULL | Código de bienes UGEL/MINEDU. |
+| `tipo_equipo` | ENUM | NOT NULL | `PC_ESCRITORIO`, `LAPTOP`, `TABLET`. |
+| `qr_equipo` | VARCHAR(255) | UNIQUE, NOT NULL | Hash del QR pegado físicamente al equipo. |
+| `estado_fisico` | ENUM | DEFAULT 'OK' | `OPERATIVO`, `MANTENIMIENTO`, `BAJA`. |
+| `ubicacion_actual` | ENUM | DEFAULT 'EN_AIP' | **Clave operativa:** `EN_AIP` o `PRESTADO_AULA`. |
+
+---
+
+### 3.3. Módulo Transaccional (Sesiones y Auditoría)
+
+**Tabla Cabecera: `sesiones_grupales` (NUEVA)**
+*Registra la autorización del Docente responsable, agilizando el ingreso de secciones enteras o la salida masiva de tabletas.*
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_sesion` | UUID | PRIMARY KEY | ID de la sesión maestra. |
+| `id_docente` | UUID | FOREIGN KEY | Docente responsable legal del turno/préstamo. |
+| `id_aula_aip` | INTEGER | FOREIGN KEY | ¿En qué AIP se desarrolla o de dónde salen los equipos? |
+| `tipo_operacion` | ENUM | NOT NULL | `CLASE_INTERNA` (En AIP) o `PRESTAMO_EXTERNO` (Aulas Regulares). |
+| `grado_seccion` | VARCHAR(10) | NULLABLE | Ej: "3ro A". Nulo si es préstamo a docentes. |
+| `hora_inicio` | TIMESTAMP | DEFAULT NOW() | Marca temporal de apertura. |
+| `hora_fin` | TIMESTAMP | NULLABLE | Cierre de sesión (liberación de equipos). |
+
+**Tabla Detalle: `sesiones_detalle` (ACTUALIZADA)**
+*El registro atómico de quién usó qué cosa (Emparejamiento Estudiante-Máquina).*
+
+| Campo | Tipo de Dato | Restricción | Descripción |
+| --- | --- | --- | --- |
+| `id_detalle` | UUID | PRIMARY KEY | ID de asignación. |
+| `id_sesion` | UUID | FOREIGN KEY | Enlace a la cabecera (`sesiones_grupales`) (ON DELETE CASCADE). |
+| `id_equipo` | UUID | FOREIGN KEY | Equipo utilizado/prestado. |
+| `id_estudiante` | UUID | FOREIGN KEY | NULO si es un "Préstamo Externo" (responsabilidad directa del docente). |
+| `incidencias` | TEXT | NULLABLE | Reporte de daños/novedades post-sesión. |
+
+---
+
+## 4. SOPORTE A FLUJOS OPERATIVOS (Justificación)
+
+1. **Gestión de Clases en AIP (Laptops Fijas):** El sistema identifica en qué AIP (1, 2 o 3) se escanea el QR del docente, cruza el `grado_seccion` con la tabla `estudiantes`, y mediante el `numero_orden` realiza un bloque de *INSERT* en la tabla `sesiones_detalle`, asociando instantáneamente a los 30 alumnos con las 30 laptops de esa aula específica, todo bajo el `id_sesion` del profesor a cargo.
+2. **Gestión de Préstamos (Salida de Tabletas):** El docente autoriza con su QR, indicando el AIP de origen. Se escanean las 15 tabletas. El campo `ubicacion_actual` de `equipos_aip` cambia a `PRESTADO_AULA`, y se asientan 15 registros en `sesiones_detalle` con el `id_estudiante` en NULO, reflejando que la responsabilidad directa recae en la cabecera (el Docente). Al devolverlos, se marca la `hora_fin` y los equipos retornan al estado `EN_AIP`.

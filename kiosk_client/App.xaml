@@ -1,0 +1,9 @@
+<Application x:Class="KioskClient.App"
+             xmlns="http://schemas.microsoft.com/winfx/2000/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2005/xaml"
+             xmlns:local="clr-namespace:KioskClient"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+         
+    </Application.Resources>
+</Application>
