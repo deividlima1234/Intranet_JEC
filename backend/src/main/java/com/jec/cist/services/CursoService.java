@@ -230,6 +230,43 @@ public class CursoService {
         cursoRepository.delete(curso);
     }
 
+    @Transactional
+    public void generarCursosDePrueba() {
+        List<PersonalInstitucional> docentes = personalInstitucionalRepository.findAll().stream()
+                .filter(p -> p.getUsuario() != null && com.jec.cist.models.Rol.DOCENTE == p.getUsuario().getRol())
+                .collect(Collectors.toList());
+
+        for (PersonalInstitucional docente : docentes) {
+            String nrc = "PRUEBA-" + docente.getIdUsuario().toString().substring(0, 5).toUpperCase();
+            if (!cursoRepository.existsByNrc(nrc)) {
+                Curso curso = new Curso(
+                        nrc,
+                        "CURSO DE PRUEBA TALLER",
+                        (short) 1,
+                        "PRUEBA",
+                        docente
+                );
+                curso.setEsPrueba(true);
+                curso.setPruebaHabilitada(false); // Deshabilitado por defecto
+                cursoRepository.save(curso);
+            }
+        }
+    }
+
+    @Transactional
+    public CursoRespuestaDto togglePruebaHabilitada(UUID idCurso) {
+        Curso curso = cursoRepository.findById(idCurso)
+                .orElseThrow(() -> new IllegalArgumentException("Curso no encontrado con ID: " + idCurso));
+        
+        if (!curso.isEsPrueba()) {
+            throw new IllegalArgumentException("Solo se puede habilitar o deshabilitar cursos que son de prueba.");
+        }
+        
+        curso.setPruebaHabilitada(!curso.isPruebaHabilitada());
+        curso = cursoRepository.save(curso);
+        return mapearACursoRespuesta(curso);
+    }
+
     // --- LOGICA DE MATERIALES ---
 
     @Transactional
@@ -467,7 +504,9 @@ public class CursoService {
                 curso.getGrado(),
                 curso.getSeccion(),
                 idDocente,
-                nombreDocente
+                nombreDocente,
+                curso.isEsPrueba(),
+                curso.isPruebaHabilitada()
         );
     }
 

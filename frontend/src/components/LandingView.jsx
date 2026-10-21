@@ -16,11 +16,40 @@ import {
   Server,
   BookMarked,
   Sun,
-  Moon
+  Moon,
+  AlertTriangle,
+  Clock,
+  MessageCircle,
+  X
 } from 'lucide-react';
 
 export default function LandingView({ onNavigateToLogin, theme, setTheme }) {
   const [showInteractiveMap, setShowInteractiveMap] = React.useState(true);
+  const [showLicenseModal, setShowLicenseModal] = React.useState(false);
+  const [timeLeft, setTimeLeft] = React.useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  React.useEffect(() => {
+    const targetDate = new Date('2026-09-16T00:00:00').getTime();
+
+    const interval = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = targetDate - now;
+
+      if (distance < 0) {
+        clearInterval(interval);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000)
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToSection = (id) => {
     const element = document.getElementById(id);
@@ -34,6 +63,82 @@ export default function LandingView({ onNavigateToLogin, theme, setTheme }) {
   return (
     <div className="w-full h-screen overflow-y-auto bg-slate-950 text-slate-100 scroll-smooth selection:bg-emerald-500 selection:text-slate-950">
       
+      {/* LICENCIA MODAL */}
+      {showLicenseModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setShowLicenseModal(false)}></div>
+          
+          <div className="relative w-full max-w-lg bg-slate-900 border border-red-500/30 rounded-3xl shadow-[0_0_40px_-10px_rgba(239,68,68,0.3)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-300">
+            {/* Header / Banner */}
+            <div className="relative bg-gradient-to-r from-red-500/20 via-orange-500/20 to-red-500/20 p-6 border-b border-red-500/20 flex flex-col items-center justify-center text-center">
+              <div className="absolute top-4 right-4 cursor-pointer text-slate-400 hover:text-white transition-colors" onClick={() => setShowLicenseModal(false)}>
+                <X className="w-5 h-5" />
+              </div>
+              <div className="p-3 bg-red-500/20 text-red-400 rounded-full mb-3 animate-pulse">
+                <AlertTriangle className="w-8 h-8" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-100">Licencia Expirada</h2>
+              <p className="text-sm text-red-400 font-semibold mt-1">El contrato del sistema ha finalizado</p>
+            </div>
+            
+            {/* Body */}
+            <div className="p-6 sm:p-8 space-y-6">
+              <p className="text-sm text-slate-300 text-center leading-relaxed">
+                Estimado administrador, la licencia de uso para la plataforma Intranet JEC ha expirado el <strong className="text-slate-100">16/09/2026</strong>. El acceso al sistema se encuentra actualmente bloqueado. Para restaurar el servicio, por favor póngase en contacto con soporte técnico.
+              </p>
+
+              {/* Countdown */}
+              <div className="flex flex-col items-center justify-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                <div className="flex items-center gap-2 mb-3 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                  <Clock className="w-4 h-4 text-orange-400" />
+                  <span>Tiempo Restante</span>
+                </div>
+                <div className="flex gap-2 sm:gap-4 text-center">
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-100 bg-slate-900 border border-slate-700 w-12 sm:w-14 h-12 sm:h-14 flex items-center justify-center rounded-xl shadow-inner">{timeLeft.days}</span>
+                    <span className="text-[10px] text-slate-500 mt-1 uppercase">Días</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-700 self-start mt-1">:</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-100 bg-slate-900 border border-slate-700 w-12 sm:w-14 h-12 sm:h-14 flex items-center justify-center rounded-xl shadow-inner">{timeLeft.hours}</span>
+                    <span className="text-[10px] text-slate-500 mt-1 uppercase">Horas</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-700 self-start mt-1">:</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl sm:text-3xl font-extrabold text-slate-100 bg-slate-900 border border-slate-700 w-12 sm:w-14 h-12 sm:h-14 flex items-center justify-center rounded-xl shadow-inner">{timeLeft.minutes}</span>
+                    <span className="text-[10px] text-slate-500 mt-1 uppercase">Min</span>
+                  </div>
+                  <span className="text-2xl sm:text-3xl font-extrabold text-slate-700 self-start mt-1">:</span>
+                  <div className="flex flex-col items-center">
+                    <span className="text-2xl sm:text-3xl font-extrabold text-orange-400 bg-slate-900 border border-orange-500/20 w-12 sm:w-14 h-12 sm:h-14 flex items-center justify-center rounded-xl shadow-inner">{timeLeft.seconds}</span>
+                    <span className="text-[10px] text-slate-500 mt-1 uppercase">Seg</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action */}
+              <div className="pt-2 flex flex-col gap-3">
+                <a 
+                  href="https://wa.me/51983032706" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-6 py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-500/20 hover:scale-[1.02] cursor-pointer"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Contactar vía WhatsApp</span>
+                </a>
+                <button 
+                  onClick={() => setShowLicenseModal(false)}
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold px-6 py-3.5 rounded-xl transition-colors cursor-pointer"
+                >
+                  Entendido, cerrar aviso
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* GLOW DE FONDO AMBIENTE */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none z-0"></div>
       <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none z-0"></div>
@@ -103,7 +208,7 @@ export default function LandingView({ onNavigateToLogin, theme, setTheme }) {
               {theme === 'dark' ? <Sun className="w-5 h-5 text-amber-450" /> : <Moon className="w-5 h-5 text-indigo-400" />}
             </button>
             <button
-              onClick={onNavigateToLogin}
+              onClick={() => setShowLicenseModal(true)}
               className="relative group flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold px-4 sm:px-6 py-2.5 rounded-2xl text-xs sm:text-sm tracking-wide transition-all duration-300 shadow-lg shadow-emerald-500/10 cursor-pointer hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:scale-95"
             >
               <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:scale-110 transition-transform" />
@@ -138,7 +243,7 @@ export default function LandingView({ onNavigateToLogin, theme, setTheme }) {
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center gap-4 mt-10">
           <button
-            onClick={onNavigateToLogin}
+            onClick={() => setShowLicenseModal(true)}
             className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-8 py-4 rounded-2xl transition-all duration-300 shadow-xl shadow-emerald-500/15 cursor-pointer hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-95"
           >
             <span>Ingresar a la Intranet JEC</span>

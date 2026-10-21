@@ -514,6 +514,36 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
     }
   };
 
+  // --- CIST: GENERAR CURSOS DE PRUEBA ---
+  const handleGenerarPruebas = async () => {
+    if (!window.confirm("¿Seguro que deseas generar un curso de prueba para cada docente?")) return;
+    try {
+      const res = await fetch('/api/v1/cursos/generar-pruebas', { method: 'POST' });
+      if (res.ok) {
+        setSuccessMsg("Cursos de prueba generados exitosamente.");
+        fetchCursos();
+      } else {
+        setError("Error al generar cursos de prueba.");
+      }
+    } catch (e) {
+      setError("Error de conexión al generar pruebas.");
+    }
+  };
+
+  // --- CIST: TOGGLE CURSO DE PRUEBA ---
+  const handleTogglePrueba = async (idCurso) => {
+    try {
+      const res = await fetch(`/api/v1/cursos/${idCurso}/toggle-prueba`, { method: 'PATCH' });
+      if (res.ok) {
+        fetchCursos();
+      } else {
+        setError("Error al cambiar el estado del curso de prueba.");
+      }
+    } catch (e) {
+      setError("Error de conexión al togglear prueba.");
+    }
+  };
+
   // --- ADMINISTRADOR: ELIMINAR CURSO ---
   const handleEliminarCurso = async (idCurso, nombre) => {
     if (!window.confirm(`¿Está seguro de que desea eliminar el curso "${nombre}"? Se borrarán permanentemente todos sus materiales y notas del sistema.`)) {
@@ -1552,8 +1582,8 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
           <div className="flex flex-wrap bg-slate-950/60 border border-slate-800 p-1.5 rounded-2xl gap-1 max-w-full overflow-x-auto">
             {[
               { id: 'materiales', label: 'Contenido' },
-              { id: 'calendario', label: 'Calendario' },
-              {
+              !esDocente && { id: 'calendario', label: 'Calendario' },
+              !esDocente && {
                 id: 'anuncios',
                 label: 'Anuncios',
                 badge: (() => {
@@ -1562,14 +1592,14 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                   return unread > 0 ? unread : 0;
                 })()
               },
-              { id: 'debates', label: 'Debates' },
+              !esDocente && { id: 'debates', label: 'Debates' },
               { id: 'notas', label: esEstudiante ? 'Mis Calificaciones' : 'Libro de Calificaciones' },
               {
                 id: 'avances',
                 label: 'Avances de Clase',
                 badge: !esEstudiante ? avances.filter(a => a.estado === 'PENDIENTE').length : 0
               },
-              {
+              !esDocente && {
                 id: 'mensajes',
                 label: 'Mensajes',
                 badge: chatContactos.reduce((acc, curr) => acc + (curr.mensajesNoLeidos || 0), 0)
@@ -4100,10 +4130,19 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
           
           {/* Formulario Crear Curso */}
           <div className="bg-slate-900/30 border border-slate-800 rounded-3xl p-5 space-y-4 h-fit">
-            <h3 className="font-bold text-slate-200 text-xs flex items-center gap-2 uppercase tracking-wider border-b border-slate-800 pb-2.5">
-              <Plus className="w-4 h-4 text-emerald-400" />
-              Registrar Nuevo Curso
-            </h3>
+            <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
+              <h3 className="font-bold text-slate-200 text-xs flex items-center gap-2 uppercase tracking-wider">
+                <Plus className="w-4 h-4 text-emerald-400" />
+                Registrar Nuevo Curso
+              </h3>
+              <button
+                type="button"
+                onClick={handleGenerarPruebas}
+                className="px-2 py-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold rounded-lg transition-colors border border-indigo-500/30"
+              >
+                Generar Pruebas
+              </button>
+            </div>
             
             {docentes.length === 0 ? (
               <div className="text-xs text-amber-400 bg-amber-955/20 border border-amber-900/40 p-3 rounded-xl">
@@ -4301,7 +4340,14 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                             <div key={c.idCurso} className="bg-slate-950/40 hover:bg-slate-900/60 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between transition-all group">
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <span className="text-[10px] text-indigo-400 font-mono font-bold bg-indigo-500/10 px-1.5 py-0.5 rounded">{c.nrc}</span>
+                                  <div className="flex gap-1.5 items-center">
+                                    <span className="text-[10px] text-indigo-400 font-mono font-bold bg-indigo-500/10 px-1.5 py-0.5 rounded">{c.nrc}</span>
+                                    {c.esPrueba && (
+                                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${c.pruebaHabilitada ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                                        PRUEBA {c.pruebaHabilitada ? 'ON' : 'OFF'}
+                                      </span>
+                                    )}
+                                  </div>
                                   <h5 className="font-bold text-slate-300 text-xs mt-1.5">{c.nombre}</h5>
                                 </div>
                                 <span className="px-1.5 py-0.5 bg-slate-800 text-slate-400 rounded-md font-bold text-[9px] shrink-0 ml-2">
@@ -4317,6 +4363,15 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                                   <ChevronRight className="w-3.5 h-3.5" />
                                   <span>Administrar</span>
                                 </button>
+                                {c.esPrueba && (
+                                  <button
+                                    onClick={() => handleTogglePrueba(c.idCurso)}
+                                    className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-500 hover:text-emerald-400 rounded-lg border border-slate-800 transition-all cursor-pointer"
+                                    title="Toggle Prueba"
+                                  >
+                                    <Gamepad2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleEliminarCurso(c.idCurso, c.nombre)}
                                   className="px-2.5 py-1.5 bg-slate-900 hover:bg-rose-955 text-slate-500 hover:text-rose-450 rounded-lg border border-slate-800 transition-all cursor-pointer"
@@ -4366,23 +4421,35 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                 ];
                 const colorClass = colors[idx % colors.length];
 
+                const isDeshabilitado = c.esPrueba && !c.pruebaHabilitada && currentUser.rol === 'DOCENTE';
+
                 return (
                   <button
                     key={c.idCurso}
-                    onClick={() => setSelectedCurso(c)}
-                    className={`bg-gradient-to-br ${colorClass} border border-slate-850 rounded-3xl p-6 text-left space-y-4 hover:shadow-2xl transition-all cursor-pointer group active:scale-98`}
+                    onClick={() => {
+                      if (!isDeshabilitado) setSelectedCurso(c);
+                    }}
+                    disabled={isDeshabilitado}
+                    className={`bg-gradient-to-br ${colorClass} border border-slate-850 rounded-3xl p-6 text-left space-y-4 transition-all ${isDeshabilitado ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-2xl cursor-pointer group active:scale-98'}`}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="p-3 bg-slate-950/80 text-emerald-400 border border-slate-800 rounded-2xl group-hover:scale-110 transition-transform">
+                      <div className={`p-3 bg-slate-950/80 text-emerald-400 border border-slate-800 rounded-2xl ${isDeshabilitado ? '' : 'group-hover:scale-110 transition-transform'}`}>
                         <BookOpen className="w-5 h-5 text-indigo-400" />
                       </div>
-                      <span className="text-[10px] bg-slate-950/60 text-slate-400 border border-slate-800 px-2.5 py-1 rounded-full font-mono font-bold tracking-wider uppercase">
-                        NRC: {c.nrc}
-                      </span>
+                      <div className="flex gap-1.5 items-center">
+                        {c.esPrueba && (
+                          <span className={`text-[9px] font-bold px-2 py-1 rounded-full uppercase tracking-wider ${isDeshabilitado ? 'bg-rose-500/20 text-rose-400 border border-rose-900/50' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-900/50'}`}>
+                            Prueba
+                          </span>
+                        )}
+                        <span className="text-[10px] bg-slate-950/60 text-slate-400 border border-slate-800 px-2.5 py-1 rounded-full font-mono font-bold tracking-wider uppercase">
+                          NRC: {c.nrc}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
-                      <h3 className="text-lg font-black text-slate-100 group-hover:text-emerald-450 transition-colors line-clamp-1">{c.nombre}</h3>
+                      <h3 className={`text-lg font-black text-slate-100 line-clamp-1 ${isDeshabilitado ? '' : 'group-hover:text-emerald-450 transition-colors'}`}>{c.nombre}</h3>
                       <p className="text-xs text-slate-500 font-semibold uppercase">
                         {currentUser.rol === 'DOCENTE' ? 'Aula asignada' : 'Mi Sección'}: {c.grado}° "{c.seccion}"
                       </p>
@@ -4392,7 +4459,8 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                       <span className="truncate max-w-[170px]">
                         {currentUser.rol === 'DOCENTE' ? 'Registro e Intranet' : c.nombreDocente}
                       </span>
-                      <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
+                      {!isDeshabilitado && <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />}
+                      {isDeshabilitado && <span className="text-[10px] text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full">Deshabilitado</span>}
                     </div>
                   </button>
                 );

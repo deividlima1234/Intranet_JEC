@@ -10,10 +10,12 @@ public class CursoRespuestaDto {
     private String seccion;
     private UUID idDocente;
     private String nombreDocente;
+    private boolean esPrueba;
+    private boolean pruebaHabilitada;
 
     public CursoRespuestaDto() {}
 
-    public CursoRespuestaDto(UUID idCurso, String nrc, String nombre, Short grado, String seccion, UUID idDocente, String nombreDocente) {
+    public CursoRespuestaDto(UUID idCurso, String nrc, String nombre, Short grado, String seccion, UUID idDocente, String nombreDocente, boolean esPrueba, boolean pruebaHabilitada) {
         this.idCurso = idCurso;
         this.nrc = nrc;
         this.nombre = nombre;
@@ -21,6 +23,8 @@ public class CursoRespuestaDto {
         this.seccion = seccion;
         this.idDocente = idDocente;
         this.nombreDocente = nombreDocente;
+        this.esPrueba = esPrueba;
+        this.pruebaHabilitada = pruebaHabilitada;
     }
 
     public UUID getIdCurso() {
@@ -77,5 +81,21 @@ public class CursoRespuestaDto {
 
     public void setNombreDocente(String nombreDocente) {
         this.nombreDocente = nombreDocente;
+    }
+
+    public boolean isEsPrueba() {
+        return esPrueba;
+    }
+
+    public void setEsPrueba(boolean esPrueba) {
+        this.esPrueba = esPrueba;
+    }
+
+    public boolean isPruebaHabilitada() {
+        return pruebaHabilitada;
+    }
+
+    public void setPruebaHabilitada(boolean pruebaHabilitada) {
+        this.pruebaHabilitada = pruebaHabilitada;
     }
 }

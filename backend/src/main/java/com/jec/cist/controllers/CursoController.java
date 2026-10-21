@@ -45,6 +45,22 @@ public class CursoController {
         return ResponseEntity.ok(cursoService.listarCursos());
     }
 
+    @PostMapping("/generar-pruebas")
+    @Operation(summary = "Generar cursos de prueba", description = "Crea automáticamente un curso de prueba para cada docente en el sistema. Los cursos inician deshabilitados.")
+    @ApiResponse(responseCode = "200", description = "Cursos generados exitosamente")
+    public ResponseEntity<Void> generarCursosDePrueba() {
+        cursoService.generarCursosDePrueba();
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/{idCurso}/toggle-prueba")
+    @Operation(summary = "Habilitar/Deshabilitar curso de prueba", description = "Permite al CIST cambiar el estado de acceso de un curso de prueba.")
+    @ApiResponse(responseCode = "200", description = "Estado cambiado exitosamente")
+    public ResponseEntity<CursoRespuestaDto> togglePruebaHabilitada(@PathVariable UUID idCurso) {
+        CursoRespuestaDto respuesta = cursoService.togglePruebaHabilitada(idCurso);
+        return ResponseEntity.ok(respuesta);
+    }
+
     @GetMapping("/docente/{idDocente}")
     @Operation(summary = "Obtener cursos de un docente", description = "Retorna los cursos asignados a un docente específico por su ID.")
     public ResponseEntity<List<CursoRespuestaDto>> listarCursosPorDocente(@PathVariable UUID idDocente) {

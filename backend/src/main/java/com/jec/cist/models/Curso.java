@@ -34,6 +34,12 @@ public class Curso {
     @JoinColumn(name = "id_docente", referencedColumnName = "id_usuario", nullable = false)
     private PersonalInstitucional docente;
 
+    @Column(name = "es_prueba", nullable = false, columnDefinition = "boolean default false")
+    private boolean esPrueba = false;
+
+    @Column(name = "prueba_habilitada", nullable = false, columnDefinition = "boolean default false")
+    private boolean pruebaHabilitada = false;
+
     public Curso() {}
 
     public Curso(String nrc, String nombre, Short grado, String seccion, PersonalInstitucional docente) {
@@ -90,5 +96,21 @@ public class Curso {
 
     public void setDocente(PersonalInstitucional docente) {
         this.docente = docente;
+    }
+
+    public boolean isEsPrueba() {
+        return esPrueba;
+    }
+
+    public void setEsPrueba(boolean esPrueba) {
+        this.esPrueba = esPrueba;
+    }
+
+    public boolean isPruebaHabilitada() {
+        return pruebaHabilitada;
+    }
+
+    public void setPruebaHabilitada(boolean pruebaHabilitada) {
+        this.pruebaHabilitada = pruebaHabilitada;
     }
 }
