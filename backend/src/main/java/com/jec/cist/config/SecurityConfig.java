@@ -51,9 +51,12 @@ public class SecurityConfig {
                 "http://172.*:*",
                 "https://172.*:*",
                 "http://10.*:*",
-                "https://10.*:*",
+                "http://10.*:*",
                 "http://colegiohuanoquite.org.pe",
-                "https://colegiohuanoquite.org.pe"
+                "https://colegiohuanoquite.org.pe",
+                "http://*.eddamcore.com",
+                "https://*.eddamcore.com",
+                "*"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control", "Accept", "X-Requested-With", "Origin"));
