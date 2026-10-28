@@ -37,7 +37,13 @@ function formatBytes(bytes) {
 
 function formatFecha(fechaStr) {
   if (!fechaStr) return '—';
-  return new Date(fechaStr).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+  try {
+    const d = new Date(fechaStr);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short' });
+  } catch (e) {
+    return '—';
+  }
 }
 
 function RolBadge({ rolesVisibles }) {

@@ -42,6 +42,7 @@ import {
 import * as XLSX from 'xlsx';
 import DocumentViewerModal from './DocumentViewerModal';
 import ModalNuevaEvaluacion from './ModalNuevaEvaluacion';
+import ErrorBoundary from './ErrorBoundary';
 
 export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabilitados = true }) {
   const [cursos, setCursos] = useState([]);
@@ -264,15 +265,20 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const resMat = await fetch(urlMateriales);
       if (resMat.ok) {
         const dataMat = await resMat.json();
-        setCursoMateriales(dataMat);
+        setCursoMateriales(Array.isArray(dataMat) ? dataMat : []);
+      } else {
+        setCursoMateriales([]);
       }
 
       // 2. Cargar notas
       const resNot = await fetch(`/api/v1/cursos/${idCurso}/notas`);
       let dataNot = [];
       if (resNot.ok) {
-        dataNot = await resNot.json();
+        const parsedNot = await resNot.json();
+        dataNot = Array.isArray(parsedNot) ? parsedNot : [];
         setCursoNotas(dataNot);
+      } else {
+        setCursoNotas([]);
       }
 
       // 3. Cargar estudiantes y evaluaciones
@@ -280,8 +286,9 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       let evalTitulos = [];
       if (resEval.ok) {
         const evalData = await resEval.json();
-        setEvaluacionesList(evalData || []);
-        evalTitulos = (evalData || []).map(ev => ev.titulo);
+        const safeEvalData = Array.isArray(evalData) ? evalData : [];
+        setEvaluacionesList(safeEvalData);
+        evalTitulos = safeEvalData.map(ev => ev.titulo);
       } else {
         setEvaluacionesList([]);
       }
@@ -290,26 +297,31 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
         const resEst = await fetch(`/api/v1/cursos/${idCurso}/estudiantes`);
         if (resEst.ok) {
           const dataEst = await resEst.json();
-          setCursoEstudiantes(dataEst);
+          const safeDataEst = Array.isArray(dataEst) ? dataEst : [];
+          setCursoEstudiantes(safeDataEst);
 
           // Construir cuadrícula de notas inicial
           const grid = {};
           const columnasExistentes = new Set(evalTitulos);
           
-          dataEst.forEach(est => {
-            grid[est.idUsuario] = {};
+          safeDataEst.forEach(est => {
+            if (est?.idUsuario) grid[est.idUsuario] = {};
           });
 
           // Poblar con notas existentes
           dataNot.forEach(nota => {
-            columnasExistentes.add(nota.criterio);
-            if (grid[nota.idEstudiante]) {
-              grid[nota.idEstudiante][nota.criterio] = nota.calificacion;
+            if (nota?.criterio) {
+              columnasExistentes.add(nota.criterio);
+              if (nota.idEstudiante && grid[nota.idEstudiante]) {
+                grid[nota.idEstudiante][nota.criterio] = nota.calificacion;
+              }
             }
           });
 
           setCriteriosList(Array.from(columnasExistentes));
           setCalificacionesGrid(grid);
+        } else {
+          setCursoEstudiantes([]);
         }
       }
     } catch (err) {
@@ -322,17 +334,21 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/anuncios`);
       if (res.ok) {
         const data = await res.json();
-        setAnuncios(data);
-        if (data.length > 0) {
-          const readIds = data.map(a => a.idAnuncio);
+        const safeData = Array.isArray(data) ? data : [];
+        setAnuncios(safeData);
+        if (safeData.length > 0) {
+          const readIds = safeData.map(a => a?.idAnuncio).filter(Boolean);
           const currentRead = JSON.parse(localStorage.getItem('anuncios_leidos') || '{}');
           currentRead[idCurso] = readIds;
           localStorage.setItem('anuncios_leidos', JSON.stringify(currentRead));
           setAnunciosLeidos(currentRead);
         }
+      } else {
+        setAnuncios([]);
       }
     } catch (e) {
       console.error(e);
+      setAnuncios([]);
     }
   };
 
@@ -341,10 +357,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/eventos`);
       if (res.ok) {
         const data = await res.json();
-        setEventos(data);
+        setEventos(Array.isArray(data) ? data : []);
+      } else {
+        setEventos([]);
       }
     } catch (e) {
       console.error(e);
+      setEventos([]);
     }
   };
 
@@ -353,10 +372,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/debates`);
       if (res.ok) {
         const data = await res.json();
-        setDebates(data);
+        setDebates(Array.isArray(data) ? data : []);
+      } else {
+        setDebates([]);
       }
     } catch (e) {
       console.error(e);
+      setDebates([]);
     }
   };
 
@@ -365,10 +387,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/debates/${idDebate}/respuestas`);
       if (res.ok) {
         const data = await res.json();
-        setDebateRespuestas(data);
+        setDebateRespuestas(Array.isArray(data) ? data : []);
+      } else {
+        setDebateRespuestas([]);
       }
     } catch (e) {
       console.error(e);
+      setDebateRespuestas([]);
     }
   };
 
@@ -377,10 +402,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/mensajes/contactos/${currentUser.idUsuario}`);
       if (res.ok) {
         const data = await res.json();
-        setChatContactos(data);
+        setChatContactos(Array.isArray(data) ? data : []);
+      } else {
+        setChatContactos([]);
       }
     } catch (e) {
       console.error(e);
+      setChatContactos([]);
     }
   };
 
@@ -389,10 +417,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/mensajes/historial/${currentUser.idUsuario}/${idContacto}`);
       if (res.ok) {
         const data = await res.json();
-        setChatMensajes(data);
+        setChatMensajes(Array.isArray(data) ? data : []);
+      } else {
+        setChatMensajes([]);
       }
     } catch (e) {
       console.error(e);
+      setChatMensajes([]);
     }
   };
 
@@ -401,10 +432,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/cursos/${idCurso}/grupos`);
       if (res.ok) {
         const data = await res.json();
-        setGrupos(data);
+        setGrupos(Array.isArray(data) ? data : []);
+      } else {
+        setGrupos([]);
       }
     } catch (e) {
       console.error(e);
+      setGrupos([]);
     }
   };
 
@@ -417,10 +451,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setLogros(data);
+        setLogros(Array.isArray(data) ? data : []);
+      } else {
+        setLogros([]);
       }
     } catch (e) {
       console.error(e);
+      setLogros([]);
     }
   };
 
@@ -742,10 +779,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/juegos/curso/${idCurso}/cuestionarios`);
       if (res.ok) {
         const data = await res.json();
-        setCuestionarios(data);
+        setCuestionarios(Array.isArray(data) ? data : []);
+      } else {
+        setCuestionarios([]);
       }
     } catch (err) {
       console.error("Error al cargar cuestionarios:", err);
+      setCuestionarios([]);
     } finally {
       setLoadingCuestionarios(false);
     }
@@ -756,10 +796,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(`/api/v1/juegos/cuestionarios/${idCuestionario}/preguntas`);
       if (res.ok) {
         const data = await res.json();
-        setPreguntasCuestionario(data);
+        setPreguntasCuestionario(Array.isArray(data) ? data : []);
+      } else {
+        setPreguntasCuestionario([]);
       }
     } catch (err) {
       console.error("Error al cargar preguntas:", err);
+      setPreguntasCuestionario([]);
     }
   };
 
@@ -1366,10 +1409,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setAvances(data);
+        setAvances(Array.isArray(data) ? data : []);
+      } else {
+        setAvances([]);
       }
     } catch (e) {
       console.error("Error al cargar avances:", e);
+      setAvances([]);
     } finally {
       setCargandoAvances(false);
     }
@@ -1498,15 +1544,50 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
     }
   };
 
-  // Formatear tamaño de archivos
-  const formatBytes = (bytes, decimals = 2) => {
+  // Utilidades seguras de formateo de fechas
+  const formatFechaSegura = (fecha, opciones = {}) => {
+    if (!fecha) return 'Sin fecha';
+    try {
+      const d = new Date(fecha);
+      if (isNaN(d.getTime())) return 'Sin fecha';
+      return d.toLocaleDateString('es-PE', opciones);
+    } catch (e) {
+      return 'Sin fecha';
+    }
+  };
 
-    if (!bytes) return '0 Bytes';
+  const formatFechaHoraSegura = (fecha, opciones = { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) => {
+    if (!fecha) return 'Sin fecha';
+    try {
+      const d = new Date(fecha);
+      if (isNaN(d.getTime())) return 'Sin fecha';
+      return d.toLocaleString('es-PE', opciones);
+    } catch (e) {
+      return 'Sin fecha';
+    }
+  };
+
+  const formatHoraSegura = (fecha, opciones = { hour: '2-digit', minute: '2-digit' }) => {
+    if (!fecha) return '';
+    try {
+      const d = new Date(fecha);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString([], opciones);
+    } catch (e) {
+      return '';
+    }
+  };
+
+  // Formatear tamaño de archivos de manera blindada
+  const formatBytes = (bytes, decimals = 2) => {
+    if (!bytes || isNaN(bytes) || Number(bytes) <= 0) return '0 Bytes';
+    const numBytes = Number(bytes);
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(numBytes) / Math.log(k));
+    const safeIdx = Math.min(Math.max(0, i), sizes.length - 1);
+    return parseFloat((numBytes / Math.pow(k, safeIdx)).toFixed(dm)) + ' ' + sizes[safeIdx];
   };
 
   // Renderizar badge de notas
@@ -1587,9 +1668,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                 id: 'anuncios',
                 label: 'Anuncios',
                 badge: (() => {
-                  const readIds = anunciosLeidos[selectedCurso.idCurso] || [];
-                  const unread = anuncios.filter(a => !readIds.includes(a.idAnuncio)).length;
-                  return unread > 0 ? unread : 0;
+                  try {
+                    const readIds = (selectedCurso?.idCurso && anunciosLeidos[selectedCurso.idCurso]) || [];
+                    const unread = (Array.isArray(anuncios) ? anuncios : []).filter(a => a?.idAnuncio && !readIds.includes(a.idAnuncio)).length;
+                    return unread > 0 ? unread : 0;
+                  } catch (e) {
+                    return 0;
+                  }
                 })()
               },
               !esDocente && { id: 'debates', label: 'Debates' },
@@ -1597,12 +1682,24 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
               {
                 id: 'avances',
                 label: 'Avances de Clase',
-                badge: !esEstudiante ? avances.filter(a => a.estado === 'PENDIENTE').length : 0
+                badge: (() => {
+                  try {
+                    return !esEstudiante && Array.isArray(avances) ? avances.filter(a => a?.estado === 'PENDIENTE').length : 0;
+                  } catch (e) {
+                    return 0;
+                  }
+                })()
               },
               !esDocente && {
                 id: 'mensajes',
                 label: 'Mensajes',
-                badge: chatContactos.reduce((acc, curr) => acc + (curr.mensajesNoLeidos || 0), 0)
+                badge: (() => {
+                  try {
+                    return Array.isArray(chatContactos) ? chatContactos.reduce((acc, curr) => acc + (curr?.mensajesNoLeidos || 0), 0) : 0;
+                  } catch (e) {
+                    return 0;
+                  }
+                })()
               },
               { id: 'grupos', label: 'Grupos' },
               { id: 'logros', label: 'Logros' },
@@ -1651,6 +1748,8 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
           </div>
         )}
 
+        {/* CONTENEDOR DE SUBPESTAÑAS PROTEGIDO POR ERROR BOUNDARY */}
+        <ErrorBoundary resetKeys={[activeSubTab, selectedCurso?.idCurso]}>
         {/* SUBPESTAÑA: MATERIALES DE CLASE */}
         {activeSubTab === 'materiales' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1766,34 +1865,34 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                 Materiales disponibles
               </h3>
 
-              {cursoMateriales.length === 0 ? (
+              {(Array.isArray(cursoMateriales) ? cursoMateriales : []).length === 0 ? (
                 <div className="bg-slate-900/20 border border-slate-800 border-dashed rounded-3xl p-10 text-center flex flex-col items-center justify-center text-slate-500">
-                  <FileText className="w-10 h-10 mb-3 text-slate-600 animate-pulse" />
+                  <FileText className="w-10 h-10 mb-3 text-slate-650 animate-pulse" />
                   <p className="text-xs font-semibold">No se han subido materiales para esta clase todavía.</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cursoMateriales.map((mat) => (
+                  {(Array.isArray(cursoMateriales) ? cursoMateriales : []).map((mat) => (
                     <div 
-                      key={mat.idMaterial} 
+                      key={mat?.idMaterial || Math.random()} 
                       className="bg-slate-900/40 border border-slate-800/80 hover:border-slate-700/80 rounded-2xl p-4 flex gap-3.5 items-start transition-all"
                     >
                       <div className="p-3 bg-indigo-500/10 text-indigo-400 rounded-xl">
                         <FileText className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0 space-y-1">
-                        <h4 className="text-sm font-bold text-slate-200 truncate" title={mat.titulo}>{mat.titulo}</h4>
-                        {mat.descripcion && (
+                        <h4 className="text-sm font-bold text-slate-200 truncate" title={mat?.titulo || 'Material'}>{mat?.titulo || 'Material'}</h4>
+                        {mat?.descripcion && (
                           <p className="text-xs text-slate-500 line-clamp-2">{mat.descripcion}</p>
                         )}
                         <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 font-semibold pt-1">
-                          <span className="truncate max-w-[120px] font-mono">{mat.nombreArchivo}</span>
+                          <span className="truncate max-w-[120px] font-mono">{mat?.nombreArchivo || 'archivo'}</span>
                           <span>•</span>
-                          <span>{formatBytes(mat.tamanoArchivo)}</span>
+                          <span>{formatBytes(mat?.tamanoArchivo)}</span>
                           <span>•</span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(mat.fechaSubida).toLocaleDateString()}
+                            {formatFechaSegura(mat?.fechaSubida)}
                           </span>
                           {esDocente && (
                             <>
@@ -1861,15 +1960,15 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-850/60 text-xs">
-                    {cursoNotas
-                      .filter(n => n.idEstudiante === currentUser.idUsuario)
+                    {(Array.isArray(cursoNotas) ? cursoNotas : [])
+                      .filter(n => n?.idEstudiante === currentUser.idUsuario)
                       .map((nota) => (
-                        <div key={nota.idNota} className="flex justify-between items-center p-4 hover:bg-slate-900/30 transition-all">
+                        <div key={nota?.idNota || Math.random()} className="flex justify-between items-center p-4 hover:bg-slate-900/30 transition-all">
                           <div className="space-y-1">
-                            <span className="font-bold text-slate-200 block">{nota.criterio}</span>
+                            <span className="font-bold text-slate-200 block">{nota?.criterio || 'Evaluación'}</span>
                             <span className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5" />
-                              Registrado el {new Date(nota.fechaRegistro).toLocaleDateString()}
+                              Registrado el {formatFechaSegura(nota?.fechaRegistro)}
                             </span>
                           </div>
                           <div>
@@ -2045,8 +2144,16 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                       className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 cursor-pointer"
                     >
                       <option value="">-- Entrega libre (sin tarea) --</option>
-                      {evaluacionesList.map(ev => {
-                        const pasada = !ev.permitirEntregasTardias && ev.fechaLimite && new Date() > new Date(ev.fechaLimite);
+                      {(Array.isArray(evaluacionesList) ? evaluacionesList : []).map(ev => {
+                        let pasada = false;
+                        if (!ev?.permitirEntregasTardias && ev?.fechaLimite) {
+                          try {
+                            const fl = new Date(ev.fechaLimite);
+                            if (!isNaN(fl.getTime())) {
+                              pasada = new Date() > fl;
+                            }
+                          } catch (e) {}
+                        }
                         return (
                           <option key={ev.idEvaluacion} value={ev.idEvaluacion} disabled={pasada}>
                             {ev.titulo} {pasada ? '(Cerrada)' : ''}
@@ -2182,8 +2289,10 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                 </div>
               ) : (
                 (() => {
-                  // Aplicar filtros de docente
-                  const filteredAvances = avances.filter(av => {
+                  // Aplicar filtros de docente de forma segura
+                  const safeAvancesList = Array.isArray(avances) ? avances : [];
+                  const filteredAvances = safeAvancesList.filter(av => {
+                    if (!av) return false;
                     let matchEstudiante = true;
                     let matchEstado = true;
                     let matchTexto = true;
@@ -2198,8 +2307,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                                      (av.descripcion && av.descripcion.toLowerCase().includes(query));
                       }
                       if (filtroFecha) {
-                        // asumiendo que fechaSubida es ISO,startsWith coincidirá con YYYY-MM-DD
-                        matchFecha = av.fechaSubida && av.fechaSubida.startsWith(filtroFecha);
+                        matchFecha = av.fechaSubida && typeof av.fechaSubida === 'string' && av.fechaSubida.startsWith(filtroFecha);
                       }
                     }
                     return matchEstudiante && matchEstado && matchTexto && matchFecha;
@@ -2214,13 +2322,12 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                     );
                   }
 
-                  // Agrupar por Fecha
+                  // Agrupar por Fecha de forma segura
                   const groupedAvances = {};
                   filteredAvances.forEach(av => {
                     let groupKey = 'Sin Fecha';
-                    if (av.fechaSubida) {
-                      const dateObj = new Date(av.fechaSubida);
-                      groupKey = dateObj.toLocaleDateString('es-PE', { year: 'numeric', month: 'long', day: 'numeric' });
+                    if (av?.fechaSubida) {
+                      groupKey = formatFechaSegura(av.fechaSubida, { year: 'numeric', month: 'long', day: 'numeric' });
                     }
                     if (!groupedAvances[groupKey]) {
                       groupedAvances[groupKey] = [];
@@ -2237,6 +2344,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                     <div className="space-y-6">
                       {Object.entries(groupedAvances).map(([fecha, entregas]) => {
                         const isExpanded = expandedAvancesGroups[fecha] === true; // Cerrado por defecto
+                        const safeEntregas = Array.isArray(entregas) ? entregas : [];
                         return (
                         <div key={fecha} className="bg-slate-900/10 rounded-3xl border border-slate-800/50 overflow-hidden">
                           <button
@@ -2247,7 +2355,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                               <Calendar className="w-4 h-4 text-indigo-400" />
                               Entregas del {fecha}
                               <span className="text-[10px] font-normal text-slate-500 bg-slate-900 px-2 py-0.5 rounded-full border border-slate-800">
-                                {entregas.length} entrega{entregas.length !== 1 ? 's' : ''}
+                                {safeEntregas.length} entrega{safeEntregas.length !== 1 ? 's' : ''}
                               </span>
                             </h4>
                             {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
@@ -2256,29 +2364,29 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                           {isExpanded && (
                             <div className="p-4 pt-0">
                               <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                                {entregas.map((av) => {
+                                {safeEntregas.map((av) => {
                         let statusColor = 'bg-amber-500/10 text-amber-400 border border-amber-900/50';
                         let statusText = 'Pendiente';
-                        if (av.estado === 'REVISADO') {
+                        if (av?.estado === 'REVISADO') {
                           statusColor = 'bg-emerald-500/10 text-emerald-400 border border-emerald-900/50';
                           statusText = 'Revisado';
-                        } else if (av.estado === 'CORREGIR') {
+                        } else if (av?.estado === 'CORREGIR') {
                           statusColor = 'bg-rose-500/10 text-rose-455 border border-rose-900/50';
                           statusText = 'Por Corregir';
                         }
 
                         return (
                           <div 
-                            key={av.idAvance} 
+                            key={av?.idAvance || Math.random()} 
                             className="bg-slate-900/30 border border-slate-850 hover:border-slate-800 rounded-3xl p-5 space-y-4 transition-all"
                           >
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-850/60 pb-3">
                               <div className="space-y-0.5">
                                 <span className="text-[10px] text-slate-500 font-extrabold block">
-                                  {esEstudiante ? '' : `Estudiante: ${av.nombreEstudiante} • `}
-                                  Entregado el: {new Date(av.fechaSubida).toLocaleString('es-PE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  {esEstudiante ? '' : `Estudiante: ${av?.nombreEstudiante || 'Alumno'} • `}
+                                  Entregado el: {formatFechaHoraSegura(av?.fechaSubida)}
                                 </span>
-                                <h4 className="text-sm font-bold text-slate-200">{av.titulo}</h4>
+                                <h4 className="text-sm font-bold text-slate-200">{av?.titulo || 'Avance'}</h4>
                               </div>
                               <span className={`self-start sm:self-auto inline-block px-3 py-1 rounded-full text-[10px] font-bold ${statusColor}`}>
                                 {statusText}
@@ -2458,19 +2566,18 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                 </div>
               ) : (
                 <div className="relative border-l-2 border-slate-800 ml-4 pl-6 space-y-6">
-                  {eventos.map((ev) => {
-                    const evDate = new Date(ev.fechaHora);
+                  {(Array.isArray(eventos) ? eventos : []).map((ev) => {
                     return (
-                      <div key={ev.idEvento} className="relative group">
+                      <div key={ev?.idEvento || Math.random()} className="relative group">
                         <div className="absolute -left-[31px] top-1.5 bg-slate-950 text-indigo-400 p-1 rounded-full border-2 border-slate-850 group-hover:scale-110 transition-transform">
                           <Clock className="w-3.5 h-3.5" />
                         </div>
                         <div className="bg-slate-900/30 border border-slate-850 hover:border-slate-800 rounded-3xl p-5 transition-all">
                           <span className="text-[10px] font-extrabold text-indigo-400 bg-indigo-500/10 border border-indigo-900/40 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            {evDate.toLocaleString('es-PE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            {formatFechaHoraSegura(ev?.fechaHora, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
-                          <h4 className="text-sm font-bold text-slate-100 mt-3">{ev.titulo}</h4>
-                          {ev.descripcion && (
+                          <h4 className="text-sm font-bold text-slate-100 mt-3">{ev?.titulo || 'Actividad'}</h4>
+                          {ev?.descripcion && (
                             <p className="text-xs text-slate-400 mt-1.5 whitespace-pre-wrap">{ev.descripcion}</p>
                           )}
                         </div>
@@ -2559,7 +2666,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                         <p className="text-xs text-slate-350 mt-2.5 whitespace-pre-wrap leading-relaxed">{an.contenido}</p>
                         <div className="border-t border-slate-850/80 pt-3 mt-4 flex items-center justify-between text-[10px] text-slate-500 font-bold">
                           <span>Publicado por: {an.nombreAutor}</span>
-                          <span>{new Date(an.fechaPublicacion).toLocaleDateString()} {new Date(an.fechaPublicacion).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <span>{formatFechaHoraSegura(an?.fechaPublicacion)}</span>
                         </div>
                       </div>
                     );
@@ -2589,9 +2696,9 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
 
                 <div className="bg-slate-900/30 border border-slate-800 rounded-3xl p-6 space-y-4">
                   <div className="flex items-center gap-2 text-[10px] text-slate-500 font-bold">
-                    <span>Iniciado por: {selectedDebate.nombreAutor}</span>
+                    <span>Iniciado por: {selectedDebate?.nombreAutor}</span>
                     <span>•</span>
-                    <span>{new Date(selectedDebate.fechaCreacion).toLocaleDateString()}</span>
+                    <span>{formatFechaSegura(selectedDebate?.fechaCreacion)}</span>
                   </div>
                   <h3 className="text-base md:text-lg font-black text-slate-100">{selectedDebate.titulo}</h3>
                   <p className="text-xs md:text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{selectedDebate.descripcion}</p>
@@ -2612,8 +2719,8 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                       {debateRespuestas.map((r) => (
                         <div key={r.idRespuesta} className="bg-slate-900/20 border border-slate-850 rounded-2xl p-4 space-y-2">
                           <div className="flex justify-between items-center text-[10px] text-slate-550 font-bold">
-                            <span>{r.nombreAutor}</span>
-                            <span>{new Date(r.fechaCreacion).toLocaleDateString()} {new Date(r.fechaCreacion).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span>{r?.nombreAutor}</span>
+                            <span>{formatFechaHoraSegura(r?.fechaCreacion)}</span>
                           </div>
                           <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{r.contenido}</p>
                         </div>
@@ -2721,7 +2828,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                         >
                           <div className="space-y-1.5 min-w-0 flex-1">
                             <span className="text-[10px] text-slate-500 font-extrabold block">
-                              Iniciado por: {db.nombreAutor} • {new Date(db.fechaCreacion).toLocaleDateString()}
+                              Iniciado por: {db?.nombreAutor} • {formatFechaSegura(db?.fechaCreacion)}
                             </span>
                             <h4 className="text-sm font-bold text-slate-100 truncate">{db.titulo}</h4>
                             <p className="text-xs text-slate-455 line-clamp-1">{db.descripcion}</p>
@@ -2821,9 +2928,9 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                                   : 'bg-slate-850 text-slate-200 rounded-bl-none border border-slate-800'
                               }`}
                             >
-                              <p className="whitespace-pre-wrap">{m.contenido}</p>
+                              <p className="whitespace-pre-wrap">{m?.contenido}</p>
                               <span className={`block text-[8px] font-bold text-right ${isMine ? 'text-indigo-200' : 'text-slate-500'}`}>
-                                {new Date(m.fechaEnvio).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {formatHoraSegura(m?.fechaEnvio)}
                               </span>
                             </div>
                           </div>
@@ -3350,18 +3457,19 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {grupos.map((g) => {
-                          const esMiGrupo = g.integrantes.some(i => i.idUsuario === currentUser.idUsuario);
+                        {(Array.isArray(grupos) ? grupos : []).map((g) => {
+                          const safeIntegrantes = Array.isArray(g?.integrantes) ? g.integrantes : [];
+                          const esMiGrupo = safeIntegrantes.some(i => i?.idUsuario === currentUser.idUsuario);
                           return (
                             <div
-                              key={g.idGrupo}
+                              key={g?.idGrupo || Math.random()}
                               className={`bg-slate-900/30 border ${
                                 esMiGrupo ? 'border-emerald-500/40 bg-emerald-950/5 shadow-md shadow-emerald-500/10' : 'border-slate-850'
                               } rounded-3xl p-5 space-y-3.5`}
                             >
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h4 className="text-sm font-bold text-slate-100">{g.nombre}</h4>
+                                  <h4 className="text-sm font-bold text-slate-100">{g?.nombre || 'Grupo'}</h4>
                                   {esMiGrupo && (
                                     <span className="inline-block mt-1 text-[9px] font-black text-emerald-450 bg-emerald-500/10 border border-emerald-900/50 px-2 py-0.5 rounded-full uppercase tracking-wider">Mi Grupo</span>
                                   )}
@@ -3378,9 +3486,9 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                                       </button>
                                       <button
                                         onClick={() => {
-                                          const text = `${g.nombre}\nIntegrantes:\n` + g.integrantes.map(mem => `- ${mem.apellidos}, ${mem.nombres}`).join('\n');
+                                          const text = `${g?.nombre || 'Grupo'}\nIntegrantes:\n` + safeIntegrantes.map(mem => `- ${mem?.apellidos || ''}, ${mem?.nombres || ''}`).join('\n');
                                           navigator.clipboard.writeText(text);
-                                          setSuccessMsg(`Información de ${g.nombre} copiada al portapapeles.`);
+                                          setSuccessMsg(`Información de ${g?.nombre || 'Grupo'} copiada al portapapeles.`);
                                         }}
                                         className="p-1.5 hover:bg-indigo-955 text-indigo-555 hover:text-slate-100 rounded-lg transition-all cursor-pointer bg-slate-950/40 border border-slate-850"
                                         title="Copiar grupo al portapapeles"
@@ -3388,7 +3496,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                                         <Copy className="w-4 h-4" />
                                       </button>
                                       <button
-                                        onClick={() => handleEliminarGrupo(g.idGrupo, g.nombre)}
+                                        onClick={() => handleEliminarGrupo(g?.idGrupo, g?.nombre)}
                                         className="p-1.5 hover:bg-rose-955 text-rose-555 hover:text-slate-100 rounded-lg transition-all cursor-pointer bg-slate-950/40 border border-slate-850"
                                         title="Eliminar grupo"
                                       >
@@ -3400,13 +3508,13 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                               </div>
 
                               <div className="space-y-1.5">
-                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wide block">Integrantes ({g.integrantes.length})</span>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-wide block">Integrantes ({safeIntegrantes.length})</span>
                                 <div className="space-y-1 max-h-36 overflow-y-auto pl-1">
-                                  {g.integrantes.map((mem) => (
-                                    <div key={mem.idUsuario} className="text-xs text-slate-350 flex items-center gap-1.5 py-0.5">
+                                  {safeIntegrantes.map((mem) => (
+                                    <div key={mem?.idUsuario || Math.random()} className="text-xs text-slate-350 flex items-center gap-1.5 py-0.5">
                                       <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full shrink-0"></div>
-                                      <span className={mem.idUsuario === currentUser.idUsuario ? 'font-bold text-emerald-455' : ''}>
-                                        {mem.apellidos}, {mem.nombres}
+                                      <span className={mem?.idUsuario === currentUser.idUsuario ? 'font-bold text-emerald-455' : ''}>
+                                        {mem?.apellidos || ''}, {mem?.nombres || ''}
                                       </span>
                                     </div>
                                   ))}
@@ -3557,7 +3665,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                         )}
                         
                         <div className="text-[9px] text-slate-500 font-semibold text-right">
-                          Otorgado el {new Date(lg.fechaOtorgado).toLocaleDateString()}
+                          Otorgado el {formatFechaSegura(lg?.fechaOtorgado)}
                         </div>
                       </div>
                     );
@@ -3611,7 +3719,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                             <p className="text-xs text-slate-400 mt-1 line-clamp-2">{c.descripcion || 'Sin descripción.'}</p>
                           </div>
                           <div className="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-900 gap-2">
-                            <span>Fecha: {new Date(c.fechaCreacion).toLocaleDateString()}</span>
+                            <span>Fecha: {formatFechaSegura(c?.fechaCreacion)}</span>
                             <div className="flex items-center gap-2">
                               <span className="bg-slate-900 hover:bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full font-bold transition-all">
                                 Ver Preguntas
@@ -3811,8 +3919,8 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
                         
                         <div className="space-y-3 pt-3 border-t border-slate-950">
                           <div className="flex items-center justify-between text-[10px] text-slate-500">
-                            <span>Creado por: {selectedCurso.nombreDocente}</span>
-                            <span>{new Date(c.fechaCreacion).toLocaleDateString()}</span>
+                            <span>Creado por: {selectedCurso?.nombreDocente}</span>
+                            <span>{formatFechaSegura(c?.fechaCreacion)}</span>
                           </div>
 
                           <div className="grid grid-cols-2 gap-2 pt-1">
@@ -3848,6 +3956,7 @@ export default function CursosView({ currentUser, onNavigateToJuegos, juegosHabi
             )}
           </div>
         )}
+        </ErrorBoundary>
 
         {/* MODAL DE REVISIÓN DOCENTE (AVANCES DE CLASE) */}
         {revisandoAvanceObj && (

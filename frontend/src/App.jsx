@@ -45,6 +45,7 @@ import JuegosView from './components/JuegosView';
 import HorarioAipView from './components/HorarioAipView';
 import ReportesView from './components/ReportesView';
 import RecursosPeruEducaView from './components/RecursosPeruEducaView';
+import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
 const JUEGOS_ACTIVOS_PARA_TODOS = false;
@@ -640,7 +641,9 @@ function App() {
       {/* PANEL PRINCIPAL */}
       <main ref={mainPanelRef} className="flex-1 p-4 md:p-8 overflow-y-auto w-full">
         <div className="max-w-6xl mx-auto w-full">
-          {renderActiveView()}
+          <ErrorBoundary resetKeys={[activeTab]}>
+            {renderActiveView()}
+          </ErrorBoundary>
         </div>
       </main>
 

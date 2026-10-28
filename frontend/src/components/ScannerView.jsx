@@ -1740,8 +1740,15 @@ export default function ScannerView() {
                     
                     <div className="text-[10px] text-slate-500 flex flex-col gap-0.5 font-mono">
                       <span>Aula: {session.aulaNombre}</span>
-                      <span>Equipos: {session.detalles ? session.detalles.filter(d => d.ubicacionActual === 'PRESTADO_AULA').length : 0} pendientes</span>
-                      <span>Inicio: {new Date(session.horaInicio).toLocaleTimeString()}</span>
+                      <span>Equipos: {Array.isArray(session.detalles) ? session.detalles.filter(d => d.ubicacionActual === 'PRESTADO_AULA').length : 0} pendientes</span>
+                      <span>Inicio: {(() => {
+                        try {
+                          const d = new Date(session.horaInicio);
+                          return isNaN(d.getTime()) ? '—' : d.toLocaleTimeString();
+                        } catch {
+                          return '—';
+                        }
+                      })()}</span>
                     </div>
                   </div>
                 ))}

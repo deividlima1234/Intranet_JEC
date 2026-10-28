@@ -26,6 +26,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -109,8 +110,8 @@ public class EstudianteAvanceService {
 
     @Transactional(readOnly = true)
     public List<EstudianteAvanceRespuestaDto> listarAvancesPorCurso(UUID idCurso) {
-        if (!cursoRepository.existsById(idCurso)) {
-            throw new IllegalArgumentException("Curso no encontrado con ID: " + idCurso);
+        if (idCurso == null || !cursoRepository.existsById(idCurso)) {
+            return Collections.emptyList();
         }
         return estudianteAvanceRepository.findByCursoIdCursoOrderByFechaSubidaDesc(idCurso).stream()
                 .map(this::mapearAAvanceRespuesta)
@@ -119,11 +120,8 @@ public class EstudianteAvanceService {
 
     @Transactional(readOnly = true)
     public List<EstudianteAvanceRespuestaDto> listarAvancesPorCursoYEstudiante(UUID idCurso, UUID idEstudiante) {
-        if (!cursoRepository.existsById(idCurso)) {
-            throw new IllegalArgumentException("Curso no encontrado con ID: " + idCurso);
-        }
-        if (!estudianteRepository.existsById(idEstudiante)) {
-            throw new IllegalArgumentException("Estudiante no encontrado con ID: " + idEstudiante);
+        if (idCurso == null || idEstudiante == null || !cursoRepository.existsById(idCurso) || !estudianteRepository.existsById(idEstudiante)) {
+            return Collections.emptyList();
         }
         return estudianteAvanceRepository.findByCursoIdCursoAndEstudianteIdUsuarioOrderByFechaSubidaDesc(idCurso, idEstudiante).stream()
                 .map(this::mapearAAvanceRespuesta)
@@ -188,13 +186,21 @@ public class EstudianteAvanceService {
 
     private EstudianteAvanceRespuestaDto mapearAAvanceRespuesta(EstudianteAvance m) {
         String nombreEstudiante = "";
-        if (m.getEstudiante() != null && m.getEstudiante().getUsuario() != null) {
-            Usuario u = m.getEstudiante().getUsuario();
-            nombreEstudiante = u.getNombres() + " " + u.getApellidos();
+        UUID idEstudiante = null;
+        if (m.getEstudiante() != null) {
+            idEstudiante = m.getEstudiante().getIdUsuario();
+            if (m.getEstudiante().getUsuario() != null) {
+                Usuario u = m.getEstudiante().getUsuario();
+                String nombres = u.getNombres() != null ? u.getNombres() : "";
+                String apellidos = u.getApellidos() != null ? u.getApellidos() : "";
+                nombreEstudiante = (nombres + " " + apellidos).trim();
+            }
         }
 
         String nombreCurso = "";
+        UUID idCurso = null;
         if (m.getCurso() != null) {
+            idCurso = m.getCurso().getIdCurso();
             nombreCurso = m.getCurso().getNombre();
         }
 
@@ -205,10 +211,10 @@ public class EstudianteAvanceService {
 
         return new EstudianteAvanceRespuestaDto(
                 m.getIdAvance(),
-                m.getCurso().getIdCurso(),
+                idCurso,
                 idEvaluacion,
                 nombreCurso,
-                m.getEstudiante().getIdUsuario(),
+                idEstudiante,
                 nombreEstudiante,
                 m.getTitulo(),
                 m.getDescripcion(),
